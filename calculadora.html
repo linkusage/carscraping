@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora DDP - Cálculo de Costos de Importación</title>
+    <meta name="description" content="Calculadora DDP">
+    
+    <!-- XLSX Library -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --background: #fafafa;
+            --foreground: #1e293b;
+            --card: #ffffff;
+            --card-foreground: #1e293b;
+            --primary: #3b82f6;
+            --primary-foreground: #ffffff;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #1e293b;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --accent: #10b981;
+            --accent-foreground: #ffffff;
+            --border: #e2e8f0;
+            --input: #e2e8f0;
+            --radius: 0.5rem;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .header-title svg {
+            width: 2.5rem;
+            height: 2.5rem;
+            color: var(--primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--foreground);
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--muted-foreground);
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-description {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--input);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            background-color: var(--card);
+            color: var(--foreground);
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            margin-top: 0.5rem;
+        }
+
+        .transport-costs {
+            margin-bottom: 1.5rem;
+        }
+
+        .costs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .costs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .cost-display {
+            padding: 1rem;
+            background-color: var(--secondary);
+            border-radius: var(--radius);
+        }
+
+        .cost-label {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.25rem;
+        }
+
+        .cost-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--foreground);
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .button-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .button-outline {
+            background-color: transparent;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+        }
+
+        .button-outline:hover {
+            background-color: var(--secondary);
+        }
+
+        .button-accent {
+            background-color: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .button-accent:hover {
+            background-color: #059669;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s;
+            background-color: var(--card);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary);
+        }
+
+        .file-upload-area.uploaded {
+            border-color: var(--accent);
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .file-upload-icon {
+            width: 3rem;
+            height: 3rem;
+            margin: 0 auto 1rem;
+            color: var(--muted-foreground);
+        }
+
+        .file-upload-area.uploaded .file-upload-icon {
+            color: var(--accent);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--muted);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        td {
+            font-size: 0.875rem;
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .icon {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--card);
+            color: var(--foreground);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .edit-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .costs-grid, .edit-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <h1>Calculadora DDP</h1>
+            </div>
+            <p class="subtitle">Costos de imporación</p>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Configuración</h2>
+                <p class="card-description">Selecciona el INCOTERM y ajusta los valores de flete y seguro</p>
+            </div>
+
+            <div class="form-group">
+                <label for="incoterm">Incoterm</label>
+                <select id="incoterm">
+                    <option value="EXW">EXW - Ex Works</option>
+                    <option value="FOB" selected>FOB - Free on Board</option>
+                    <option value="CFR">CFR - Cost and Freight</option>
+                    <option value="CIF">CIF - Cost, Insurance and Freight</option>
+                </select>
+                <p class="help-text">INCOTERM</p>
+            </div>
+
+            <div class="transport-costs">
+                <div class="costs-header">
+                    <h3>Costos de Transporte</h3>
+                    <button class="button button-outline" id="updateBtn" onclick="showEditMode()">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div id="displayMode">
+                    <div class="costs-grid">
+                        <div class="cost-display">
+                            <p class="cost-label">Flete</p>
+                            <p class="cost-value" id="fleteDisplay">$1,500 USD</p>
+                        </div>
+                        <div class="cost-display">
+                            <p class="cost-label">Seguro</p>
+                            <p class="cost-value" id="seguroDisplay">$800 USD</p>
+                        </div>
+                                <div class="cost-display">
+                                <p class="cost-label">TRM</p>
+                                <p class="cost-value">
+                                    <span id="trmValueDisplay"></span>
+                                    <span id="trmDateDisplay" style="font-size: 0.9rem; color: var(--muted-foreground); margin-left: 5px;">
+                                        (--)
+                                    </span>
+                                </p>
+                            </div>
+                    </div>
+                </div>
+
+                <div id="editMode" class="hidden">
+                    <div class="edit-inputs">
+                        <div class="form-group">
+                            <label for="fleteInput">Flete (USD)</label>
+                            <input type="number" id="fleteInput" step="0.01" value="1500" placeholder="Ingresa el valor del flete">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguroInput">Seguro (USD)</label>
+                            <input type="number" id="seguroInput" step="0.01" value="800" placeholder="Ingresa el valor del seguro">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="button button-accent" onclick="updateValues()">
+                            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Enviar
+                        </button>
+                        <button class="button button-outline" onclick="cancelEdit()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Card -->
+        <div class="card" id="uploadCard">
+            <div class="card-header">
+                <h2 class="card-title">Cargar Datos</h2>
+                <p class="card-description">Sube un archivo Excel con las columnas: VEHICULO, FOB, ARANCEL%, IVA%, ANLA, LOGISTICA_INTERNA, LOGISTICA_ENTREGA, SOURCE</p>
+            </div>
+
+            <div class="file-upload-area" id="uploadArea">
+                <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div>
+                    <p style="font-weight: 600; margin-bottom: 0.25rem;" id="uploadText">Selecciona un archivo Excel</p>
+                    <p style="font-size: 0.875rem; color: var(--muted-foreground);" id="uploadSubtext">Formatos soportados: .xlsx, .xls</p>
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+            
+            <button class="button button-primary" style="width: 100%; margin-top: 1rem;" onclick="document.getElementById('fileInput').click()">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span id="uploadBtnText">Seleccionar archivo</span>
+            </button>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card hidden" id="resultsCard">
+            <div class="card-header">
+                <h2 class="card-title">Resultados</h2>
+                <p class="card-description">Cálculo de DDP y costos asociados (TRM: <span id="trmTablaResultado"></span>)</p>
+            </div>
+
+            <div class="results-header">
+                <div></div>
+                <button class="button button-outline" onclick="downloadResults()">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Descargar Excel
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vehículo</th>
+                            <th class="text-right">DDP USD</th>
+                            <th class="text-right">DDP COP</th>
+                            <th class="text-right">Precio Mercado</th>
+                            <th class="text-right">Arancel</th>
+                            <th class="text-right">IVA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="text-align: center; font-size: 0.875rem; color: var(--muted-foreground);">
+                Total de registros: <span id="recordCount">0</span>
+            </div>
+        </div>
+    </div>
+
+<script>
+/*
+  ✅ Full replacement <script> tag.
+  - Replaces the old loadMarketPrices() (now fetches your Vercel JSON).
+  - Keeps the rest of your logic intact.
+  - Ensures PRECIO_MERCADO is treated as a string (display-only).
+  - Adds a couple of small robustness fixes (trim & case-insensitive match).
+*/
+
+let flete = 1500,
+    seguro = 800,
+    trm = null,
+    inputData = [],
+    outputData = [],
+    currentFileName = '';
+
+let priceMap = {}; // VEHICULO (lowercase trimmed) -> PRECIO_MERCADO (string)
+
+const qs = id => document.getElementById(id);
+const show = (el, flag) => el.classList[flag ? 'remove' : 'add']('hidden');
+
+function showEditMode() {
+  show(qs('displayMode'), false);
+  show(qs('editMode'), true);
+  qs('updateBtn').classList.add('hidden');
+}
+function cancelEdit() {
+  show(qs('displayMode'), true);
+  show(qs('editMode'), false);
+  qs('updateBtn').classList.remove('hidden');
+  qs('fleteInput').value = flete;
+  qs('seguroInput').value = seguro;
+}
+function updateValues() {
+  const nf = parseFloat(qs('fleteInput').value), ns = parseFloat(qs('seguroInput').value);
+  if ([nf, ns].some(v => isNaN(v) || v <= 0)) return showToast('Valores inválidos','error');
+  flete = nf; seguro = ns;
+  qs('fleteDisplay').textContent = `$${flete.toLocaleString('es-CO')} USD`;
+  qs('seguroDisplay').textContent = `$${seguro.toLocaleString('es-CO')} USD`;
+  cancelEdit();
+  if (inputData.length) calculateDDP();
+  showToast('Valores actualizados','success');
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentFileName = file.name;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' }),
+            sh = wb.SheetNames[0],
+            data = XLSX.utils.sheet_to_json(wb.Sheets[sh]);
+      const req = ['VEHICULO','FOB','ARANCEL%','IVA%','ANLA','LOGISTICA_INTERNA','LOGISTICA_ENTREGA','SOURCE'];
+      if (!data.length) return showToast('Archivo vacío','error');
+      const miss = req.filter(c => !(c in data[0]));
+      if (miss.length) return showToast(`Faltan columnas: ${miss.join(', ')}`,'error');
+      inputData = data;
+      qs('uploadArea').classList.add('uploaded');
+      qs('uploadText').textContent = currentFileName;
+      qs('uploadSubtext').textContent = 'Archivo cargado';
+      qs('uploadBtnText').textContent = 'Cargar otro archivo';
+      calculateDDP();
+      showToast(`Archivo cargado: ${data.length} registros`,'success');
+    } catch(e){ showToast('Error procesando archivo','error'); console.error(e);} };
+  r.readAsArrayBuffer(file);
+}
+
+/* ====== NEW: loadMarketPrices (fetches Vercel endpoint JSON) ====== */
+async function loadMarketPrices() {
+  try {
+    const url = "https://carscraping-git-main-julians-projects-b0e49b1c.vercel.app/api/precios";
+    const res = await fetch(url, {cache: "no-store"});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!data.rows || !Array.isArray(data.rows)) {
+      console.error("❌ Unexpected API format:", data);
+      return;
+    }
+
+    // Build priceMap using lowercase trimmed keys for more robust matching
+    priceMap = {};
+    data.rows.forEach(row => {
+      if (row.VEHICULO && row.PRECIO_MERCADO != null) {
+        const key = String(row.VEHICULO).trim().toLowerCase();
+        priceMap[key] = String(row.PRECIO_MERCADO).trim();
+      }
+    });
+
+    console.log("✅ Loaded prices from Vercel:", priceMap);
+
+    // Recalculate if a file is already loaded and TRM available
+    if (inputData.length && trm !== null) calculateDDP();
+
+  } catch (err) {
+    console.error("❌ Failed to load market prices:", err);
+    showToast('No se pudieron cargar los precios de mercado','error');
+  }
+}
+
+/* ====== Calculation and rendering (mostly unchanged) ====== */
+function calculateDDP() {
+  if (trm === null) return;
+
+  outputData = inputData.map(r => {
+    const cifUSD = Number(r.FOB) + flete + seguro;
+    const cifCOP = cifUSD * trm;
+    const ar = cifCOP * (Number(r['ARANCEL%']) / 100);
+    const iva = (cifCOP + ar) * (Number(r['IVA%']) / 100);
+    const ddpCOP = cifCOP + ar + iva + Number(r.ANLA) + Number(r.LOGISTICA_INTERNA) + Number(r.LOGISTICA_ENTREGA);
+
+    // Robust lookup: try exact match, then lowercase trimmed
+    let precio = null;
+    if (r.VEHICULO && priceMap[String(r.VEHICULO).trim().toLowerCase()]) {
+      precio = priceMap[String(r.VEHICULO).trim().toLowerCase()];
+    } else {
+      // fallback: try to find a key that contains the vehicle name fragment
+      const vehNorm = String(r.VEHICULO).trim().toLowerCase();
+      for (const k of Object.keys(priceMap)) {
+        if (k.includes(vehNorm) || vehNorm.includes(k)) {
+          precio = priceMap[k];
+          break;
+        }
+      }
+    }
+    if (!precio) precio = "No disponible";
+
+    return {
+      VEHICULO: r.VEHICULO,
+      SOURCE: r.SOURCE,
+      'DDP USD': +(ddpCOP / trm).toFixed(2),
+      'DDP COP': +ddpCOP.toFixed(2),
+      // keep as string — this column is display-only (already formatted in Upstream)
+      PRECIO_MERCADO: precio,
+      ARANCEL: +ar.toFixed(2),
+      IVA: +iva.toFixed(2)
+    };
+  });
+
+  displayResults();
+}
+
+function displayResults() {
+  const tb = qs('resultsTableBody');
+  tb.innerHTML = outputData.map(r => `
+    <tr>
+      <td style="font-weight:500;">${escapeHtml(r.VEHICULO)}</td>
+      <td class="text-right">$${Number(r['DDP USD']).toLocaleString('es-CO',{minimumFractionDigits:2})}</td>
+      <td class="text-right">$${Number(r['DDP COP']).toLocaleString('es-CO',{minimumFractionDigits:2})}</td>
+      <td class="text-right">${escapeHtml(r.PRECIO_MERCADO)}</td>
+      <td class="text-right">$${Number(r.ARANCEL).toLocaleString('es-CO',{minimumFractionDigits:2})}</td>
+      <td class="text-right">$${Number(r.IVA).toLocaleString('es-CO',{minimumFractionDigits:2})}</td>
+    </tr>`).join('');
+  qs('recordCount').textContent = outputData.length;
+  show(qs('resultsCard'), true);
+}
+
+function downloadResults() {
+  try {
+    const ws = XLSX.utils.json_to_sheet(outputData), wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
+    ws['!cols'] = [{wch:20},{wch:15},{wch:15},{wch:18},{wch:15},{wch:15}];
+    XLSX.writeFile(wb, `DDP_Resultados_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Archivo descargado','success');
+  } catch(e){ showToast('Error descargando','error'); console.error(e);} 
+}
+
+function showToast(msg,type='success'){
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+/* TRM loader unchanged from original but with small safety checks */
+async function loadTRM(){
+  try{
+    const url="https://www.datos.gov.co/resource/ceyp-9c7c.json?$limit=1&$order=vigenciadesde%20DESC";
+    const d = await (await fetch(url)).json();
+    if(!d.length) throw 0;
+    trm = +d[0].valor;
+    qs('trmValueDisplay').textContent = trm.toLocaleString('es-CO');
+    qs('trmTablaResultado').textContent = trm.toLocaleString('es-CO');
+    qs('trmDateDisplay').textContent = `(${new Date(d[0].vigenciadesde).toLocaleDateString('es-CO')})`;
+    if(inputData.length) calculateDDP();
+  }catch(e){ showToast('No se pudo obtener la TRM','error'); console.error(e); }
+}
+
+/* small helper to escape HTML when injecting strings into DOM */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+/* wire up file input handler (in case not already set inline) */
+const fileInput = qs('fileInput');
+if (fileInput) fileInput.addEventListener('change', handleFileUpload);
+
+/* initial UI values */
+qs('trmValueDisplay').textContent = "Esperando TRM...";
+qs('trmDateDisplay').textContent = "(--)";
+
+/* load TRM and market prices on page load */
+window.addEventListener('load', loadTRM);
+window.addEventListener('load', loadMarketPrices);
+</script>
+
+
+</body>
+</html>
